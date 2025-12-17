@@ -1,18 +1,20 @@
-# README
+README.md
+# Online Job Portal
+Java Web Project using JSP, Servlet, JDBC, MySQL
 
-Simple Online Job Portal (Java + JDBC)
 
-Files included below (each file separated by a comment header):
+## Features
+- User Login & Registration
+- Job Posting
+- Job Viewing
+- Database Connectivity
 
-1) DB_SCHEMA.sql  -- SQL to create tables
-2) DBConnection.java
-3) models/User.java
-4) models/Employer.java
-5) models/Job.java
-6) dao/UserDAO.java
-7) dao/JobDAO.java
-8) Main.java
 
+## How to Run
+1. Import project in Eclipse
+2. Configure Tomcat Server
+3. Import database jobportal.sql
+4. Run on server
 ---
 
 // ---------- DB_SCHEMA.sql ----------
@@ -384,4 +386,201 @@ public class Main {
 - This is a simple console-based skeleton. For production, use password hashing (BCrypt), input validation, connection pooling, and an MVC web framework (Spring Boot + JPA) for a full portal.
 - Update DBConnection credentials before running.
 - To compile: place files under proper package folders, add MySQL JDBC driver to classpath, run Main.
-# GUVI-
+# GUVI
+Database Code (jobportal.sql)
+CREATE DATABASE jobportal;
+USE jobportal;
+
+
+//CREATE TABLE users (
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(100),
+email VARCHAR(100) UNIQUE,
+password VARCHAR(100),
+role VARCHAR(20)
+);
+
+
+CREATE TABLE jobs (
+id INT AUTO_INCREMENT PRIMARY KEY,
+title VARCHAR(100),
+company VARCHAR(100),
+description TEXT
+);
+//DBConnection.java
+package dao;
+import java.sql.*;
+
+
+public class DBConnection {
+public static Connection getConnection() {
+Connection con = null;
+try {
+Class.forName("com.mysql.cj.jdbc.Driver");
+con = DriverManager.getConnection(
+"jdbc:mysql://localhost:3306/jobportal",
+"root",
+"password"
+);
+} catch (Exception e) {
+e.printStackTrace();
+}
+return con;
+}
+}
+//User.java
+package model;
+public class User {
+private String name, email, password, role;
+public String getName() { return name; }
+public void setName(String name) { this.name = name; }
+public String getEmail() { return email; }
+public void setEmail(String email) { this.email = email; }
+public String getPassword() { return password; }
+public void setPassword(String password) { this.password = password; }
+public String getRole() { return role; }
+public void setRole(String role) { this.role = role; }
+}
+//Job.java
+package model;
+public class Job {
+private String title, company, description;
+public String getTitle() { return title; }
+public void setTitle(String title) { this.title = title; }
+public String getCompany() { return company; }
+public void setCompany(String company) { this.company = company; }
+public String getDescription() { return description; }
+public void setDescription(String description) { this.description = description; }
+}
+//UserDAO.java
+package dao;
+import java.sql.*;
+import model.User;
+
+
+public class UserDAO {
+public static boolean register(User u) {
+try {
+Connection con = DBConnection.getConnection();
+PreparedStatement ps = con.prepareStatement(
+"INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)"
+);
+ps.setString(1, u.getName());
+ps.setString(2, u.getEmail());
+ps.setString(3, u.getPassword());
+ps.setString(4, u.getRole());
+return ps.executeUpdate() > 0;
+} catch (Exception e) {
+return false;
+}
+}
+public static boolean login(String email, String password) {
+try {
+Connection con = DBConnection.getConnection();
+PreparedStatement ps = con.prepareStatement(
+"SELECT * FROM users WHERE email=? AND password=?"
+);
+ps.setString(1, email);
+ps.setString(2, password);
+ResultSet rs = ps.executeQuery();
+return rs.next();
+} catch (Exception e) {
+return false;
+}
+}
+}
+//JobDAO.java
+package dao;
+import java.sql.*;
+import model.Job;
+
+
+public class JobDAO {
+public static boolean addJob(Job j) {
+try {
+Connection con = DBConnection.getConnection();
+PreparedStatement ps = con.prepareStatement(
+"INSERT INTO jobs(title,company,description) VALUES(?,?,?)"
+);
+ps.setString(1, j.getTitle());
+ps.setString(2, j.getCompany());
+ps.setString(3, j.getDescription());
+return ps.executeUpdate() > 0;
+} catch (Exception e) {
+return false;
+}
+}
+}
+//LoginServlet.java
+package controller;
+import java.io.*;
+import javax.servlet.*;
+import javax.servlet.http.*;
+import dao.UserDAO;
+
+
+public class LoginServlet extends HttpServlet {
+protected void doPost(HttpServletRequest req, HttpServletResponse res)
+throws ServletException, IOException {
+String email = req.getParameter("email");
+String password = req.getParameter("password");
+
+
+if (UserDAO.login(email, password)) {
+res.sendRedirect("dashboard.jsp");
+} else {
+res.sendRedirect("error.jsp");
+}
+}
+}
+//RegisterServlet.java
+package controller;
+import java.io.*;
+import javax.servlet.*;
+import javax.servlet.http.*;
+import model.User;
+import dao.UserDAO;
+
+
+public class RegisterServlet extends HttpServlet {
+protected void doPost(HttpServletRequest req, HttpServletResponse res)
+throws ServletException, IOException {
+User u = new User();
+u.setName(req.getParameter("name"));
+u.setEmail(req.getParameter("email"));
+u.setPassword(req.getParameter("password"));
+u.setRole(req.getParameter("role"));
+
+
+if (UserDAO.register(u)) {
+res.sendRedirect("login.jsp");
+} else {
+res.sendRedirect("error.jsp");
+}
+}
+}
+//JobServlet.java
+package controller;
+import java.io.*;
+import javax.servlet.*;
+import javax.servlet.http.*;
+import model.Job;
+import dao.JobDAO;
+
+
+public class JobServlet extends HttpServlet {
+protected void doPost(HttpServletRequest req, HttpServletResponse res)
+throws ServletException, IOException {
+Job j = new Job();
+j.setTitle(req.getParameter("title"));
+j.setCompany(req.getParameter("company"));
+j.setDescription(req.getParameter("description"));
+
+
+if (JobDAO.addJob(j)) {
+res.sendRedirect("dashboard.jsp");
+} else {
+res.sendRedirect("error.jsp");
+}
+}
+}
